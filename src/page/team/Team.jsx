@@ -20,13 +20,16 @@ import {
 import Header from "../../components/Header";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import { userRequest } from "../../requestMethod";
 
 const Team = () => {
   const theme = useTheme();
   const [users, setUsers] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
+  const [modifyRoleDialog, setModifyRoleDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [userToModifyRole, setUserToModifyRole] = useState("");
   const [newUserData, setNewUserData] = useState({
     prenom: "",
     nom: "",
@@ -35,6 +38,7 @@ const Team = () => {
     password: "",
     isAdmin: false,
   });
+  const [newRole, setNewRole] = useState("User");
 
   const columns = useMemo(
     () => [
@@ -77,7 +81,7 @@ const Team = () => {
       {
         field: "isAdmin",
         headerName: "Access",
-        flex: 0.5,
+        flex: 0.25,
         align: "left",
         headerAlign: "left",
         renderCell: ({ row }) => {
@@ -158,6 +162,31 @@ const Team = () => {
     }
   };
 
+  const handleModifyRoleClick = (id) => {
+    setUserToModifyRole(id);
+    setModifyRoleDialog(true);
+  };
+
+  const handleModifyRole = async () => {
+    try {
+      console.log(newRole);
+      await userRequest.patch(`/user/update-role/${userToModifyRole}`, {
+        isAdmin: newRole === "User" ? false : true,
+      });
+
+      setModifyRoleDialog(false);
+      setUserToModifyRole("");
+      fetchUsers();
+    } catch (error) {
+      console.error("Error modifying user role:", error);
+      toast.error("Failed to modify user role.", {
+        duration: 4000,
+        position: "top-center",
+        style: { background: "red", color: "white" },
+      });
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const response = await axios.get(
@@ -211,13 +240,25 @@ const Team = () => {
         }}
       >
         <Header title={"TEAM"} subTitle={"Managing the Team Members"} />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setOpenDialog(true)}
-        >
-          Create User
-        </Button>
+        <Box sx={{ marginLeft: "auto" }}>
+          {" "}
+          {/* Placez la modification ici */}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenDialog(true)}
+          >
+            Create User
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setModifyRoleDialog(true)}
+            sx={{ marginLeft: "10px" }}
+          >
+            Modify Role
+          </Button>
+        </Box>
       </Box>
       <Box sx={{ height: 600, mx: "auto", overflowY: "auto" }}>
         <DataGrid
@@ -325,6 +366,38 @@ const Team = () => {
           >
             Delete
           </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={modifyRoleDialog}
+        onClose={() => setModifyRoleDialog(false)}
+      >
+        <DialogTitle>Modify User Role</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="User ID"
+            fullWidth
+            value={userToModifyRole}
+            onChange={(e) => setUserToModifyRole(e.target.value)}
+          />
+          <TextField
+            select
+            margin="dense"
+            label="Role"
+            fullWidth
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value)}
+            sx={{ marginBottom: "15px" }}
+          >
+            <MenuItem value="User">User</MenuItem>
+            <MenuItem value="Admin">Admin</MenuItem>
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModifyRoleDialog(false)}>Cancel</Button>
+          <Button onClick={handleModifyRole}>Modify</Button>
         </DialogActions>
       </Dialog>
     </Box>
